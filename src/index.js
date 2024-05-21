@@ -67,33 +67,6 @@ class Filter {
 }
 module.exports.Filter = Filter;
 
-/**
- *
- * @param {String} [filePath]
- * @returns {Promise<Filter>} filter
- */
-async function createFilter(filePath) {
-    return new Promise((resolve, reject) => {
-        if(!filePath) return resolve(new Filter());
-        if(!fs.existsSync(filePath)) return reject(`no such file : ${filePath}`);
-
-        try {
-            const rs = fs.createReadStream(filePath);
-            const rl = readline.createInterface({ input: rs });
-
-            const keywords = [];
-            rl.on('line', line => keywords.push(line));
-            rl.on('close', () => {
-                const filter = new Filter(keywords);
-                resolve(filter);
-            });
-        } catch (error) {
-            return reject(error);
-        }
-    });
-}
-module.exports.createFilter = createFilter;
-
 function createKeywords(filePath) {
     try {
         const fileContent = fs.readFileSync(filePath)?.toString();
@@ -113,5 +86,25 @@ const violencePath = path.join(dictPath, 'violence.txt');
 const violenceKeywords = createKeywords(violencePath);
 const violenceFilter = new Filter(violenceKeywords);
 
-const defaultFilter = { adultFilter, violenceFilter };
-module.exports.defaultFilter = defaultFilter;
+const defaultFilters = { adultFilter, violenceFilter };
+module.exports.defaultFilters = defaultFilters;
+
+/**
+ *
+ * @param {Array<Filter>} filters
+ * @param {String} text
+ * @returns {String | null} filtered
+ */
+function composeFilter(filters, text) {
+    try {
+        for(const filter of filters) {
+            const filtered = filter.apply(text);
+            if(!filtered) return filtered;
+        }
+
+        return text;
+    } catch (error) {
+        throw error;
+    }
+}
+module.exports.composeFilter = composeFilter;
